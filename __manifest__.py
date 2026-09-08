@@ -19,7 +19,7 @@ se automaticky odvozují z českého IBAN a tisknou na fakturu vedle IBAN.
 Při instalaci převezme čísla účtů z modulu Origamis Base CZ, pokud je
 nainstalovaný, a odpojí od něj záznamy bank, aby přežily jeho odinstalaci.
 """,
-    "version": "18.0.1.0.0",
+    "version": "19.0.1.0.0",
     "category": "Accounting/Localizations",
     "author": "Matouš Čmelík",
     "website": "https://github.com/cmeldas/cz_qr_payment",
