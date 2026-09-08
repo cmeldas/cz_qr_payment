@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_bank_form_cz" model="ir.ui.view">
+        <field name="name">res.partner.bank.form.cz_qr_payment</field>
+        <field name="model">res.partner.bank</field>
+        <field name="inherit_id" ref="base.view_partner_bank_form"/>
+        <field name="arch" type="xml">
+            <field name="acc_number" position="after">
+                <field name="cz_account_number"/>
+                <field name="cz_bank_code"/>
+                <field name="cz_account_display"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_partner_bank_tree_cz" model="ir.ui.view">
+        <field name="name">res.partner.bank.list.cz_qr_payment</field>
+        <field name="model">res.partner.bank</field>
+        <field name="inherit_id" ref="base.view_partner_bank_tree"/>
+        <field name="arch" type="xml">
+            <field name="acc_number" position="after">
+                <field name="cz_account_display" optional="show"/>
+            </field>
+        </field>
+    </record>
+</odoo>

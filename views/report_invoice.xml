@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tuzemský tvar čísla účtu vedle IBAN v bloku „Payment Communication“ faktury -->
+    <template id="report_invoice_document_cz_account" inherit_id="account.report_invoice_document">
+        <xpath expr="//p[@name='payment_communication']//span[@t-field='o.partner_bank_id']" position="after">
+            <span t-if="o.partner_bank_id.cz_account_display" class="fw-bold">
+                (<t t-out="o.partner_bank_id.cz_account_display"/>)
+            </span>
+        </xpath>
+    </template>
+</odoo>
