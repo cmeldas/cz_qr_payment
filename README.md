@@ -13,9 +13,15 @@ Odoo modul, který přidává české QR kódy pro platbu převodem ve formátu
   odvozené z českého IBAN (např. `CZ65 0800 0000 1920 0014 5399` →
   `19-2000145399/0800`). Tuzemský tvar se tiskne na fakturu vedle IBAN.
 
-Obsah QR kódu: `SPD*1.0*ACC:<IBAN>*AM:<částka>*CC:<měna>*RN:<příjemce>*X-VS:<variabilní symbol>*MSG:<zpráva>`.
-Variabilní symbol se bere z číslic platební reference faktury. V pokladně se
-přidává příznak okamžité platby `PT:IP`.
+Obsah QR kódu je záměrně **stejný jako v původním modulu Origamis** (pořadí, bez `RN`,
+bez mezer, částka jako `123.5`):
+
+- pokladna: `SPD*1.0*ACC:<IBAN>*AM:<částka>*CC:<měna>*PT:IP*MSG:<Order pos_reference tracking>`
+  (`PT:IP` = okamžitá platba, ve zprávě číslo objednávky a pořadové číslo lístku, bez mezer),
+- faktura: `SPD*1.0*ACC:<IBAN>*AM:<částka>*CC:<měna>*X-VS:<číslice platební reference>`.
+
+`PT:IP` stojí před `MSG`, protože některé bankovní aplikace berou vše za `MSG:` jako zprávu
+a příznak okamžité platby by jinak přehlédly.
 
 ## Kde se nastavuje číslo účtu pro QR
 
