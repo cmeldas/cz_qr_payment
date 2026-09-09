@@ -33,26 +33,38 @@ class TestCzQrPayment(TransactionCase):
         methods = dict(self.env["res.partner.bank"].get_available_qr_methods_in_sequence())
         self.assertIn("qr_czk", methods)
 
-    def test_spd_values(self):
+    def test_spd_values_invoice(self):
+        """Faktura: stejný tvar jako Origamis – ACC, AM, CC, X-VS; bez RN a MSG."""
         vals = self.bank_account._get_qr_vals(
-            "qr_czk", 1500.0, self.czk, self.no_partner, "Objednávka č. 42", "202600005",
+            "qr_czk", 1500.0, self.czk, self.no_partner, "FA/2026/00005", "202600005",
         )
-        self.assertEqual(vals[0], "SPD*1.0")
-        self.assertIn("ACC:CZ6508000000192000145399", vals)
-        self.assertIn("AM:1500.00", vals)
-        self.assertIn("CC:CZK", vals)
-        self.assertIn("RN:Ranc Na Samotach", vals)
-        self.assertIn("X-VS:202600005", vals)
-        self.assertIn("MSG:Objednavka c. 42", vals)
-        self.assertNotIn("PT:IP", vals)
+        self.assertEqual(
+            vals,
+            ["SPD*1.0", "ACC:CZ6508000000192000145399", "AM:1500.0", "CC:CZK", "X-VS:202600005"],
+        )
 
     def test_spd_values_pos(self):
+        """Pokladna: ACC, AM, CC, PT:IP, MSG v tomto pořadí, bez mezer a diakritiky."""
+        vals = self.bank_account.with_context(is_online_qr=True)._get_qr_vals(
+            "qr_czk", 123.5, self.czk, self.no_partner, "Order 26A-1-000042 A12", "",
+        )
+        self.assertEqual(
+            vals,
+            ["SPD*1.0", "ACC:CZ6508000000192000145399", "AM:123.5", "CC:CZK", "PT:IP", "MSG:Order26A-1-000042A12"],
+        )
+
+    def test_spd_values_pos_offline_default(self):
+        """Výchozí QR pokladny bez částky a zprávy (offline záloha)."""
         vals = self.bank_account.with_context(is_online_qr=True)._get_qr_vals(
             "qr_czk", 0, self.czk, self.no_partner, "", "",
         )
-        self.assertIn("PT:IP", vals)
-        self.assertFalse([v for v in vals if v.startswith("AM:")])
-        self.assertFalse([v for v in vals if v.startswith("X-VS:")])
+        self.assertEqual(vals, ["SPD*1.0", "ACC:CZ6508000000192000145399", "CC:CZK", "PT:IP"])
+
+    def test_spd_text_strips_spaces_and_diacritics(self):
+        vals = self.bank_account.with_context(is_online_qr=True)._get_qr_vals(
+            "qr_czk", 10, self.czk, self.no_partner, "Objednávka č. 42 * test", "",
+        )
+        self.assertIn("MSG:Objednavkac.42test", vals)
 
     def test_qr_image(self):
         image = self.bank_account.build_qr_code_base64(

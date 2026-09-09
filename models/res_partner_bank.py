@@ -7,7 +7,7 @@ import re
 import unicodedata
 
 from odoo import _, api, fields, models
-from odoo.tools import float_repr
+
 
 # Stejný klíč jako používal modul Origamis, aby hodnoty uložené
 # v account.move.qr_code_method a pos.payment.method.qr_code_method zůstaly platné.
@@ -34,13 +34,23 @@ def cz_parts_from_iban(iban):
 
 
 def spd_text(value, max_len):
-    """Očistí text pro hodnotu SPD: bez diakritiky, bez hvězdiček a konců řádků."""
+    """Očistí text pro hodnotu SPD: bez diakritiky, bez hvězdiček, konců řádků a mezer.
+
+    Mezery se odstraňují úplně (stejně jako v původním modulu Origamis): některé
+    bankovní aplikace berou zbytek řetězce za `MSG:` jako zprávu, a mezery
+    v hodnotách jim vadí.
+    """
     ascii_text = (
         unicodedata.normalize("NFKD", value or "")
         .encode("ascii", "ignore")
         .decode("ascii")
     )
-    return SPD_FORBIDDEN_RE.sub(" ", ascii_text).strip()[:max_len]
+    return SPD_FORBIDDEN_RE.sub("", ascii_text).replace(" ", "")[:max_len]
+
+
+def spd_amount(amount):
+    """Částka jako v Origamis: ``str(round(amount, 2))``, tedy 123.5 nebo 1500.0."""
+    return str(round(amount, 2))
 
 
 class ResPartnerBank(models.Model):
@@ -131,23 +141,28 @@ class ResPartnerBank(models.Model):
         return super()._get_error_messages_for_qr(qr_method, debtor_partner, currency)
 
     def _get_qr_vals(self, qr_method, amount, currency, debtor_partner, free_communication, structured_communication):
+        """Řetězec SPD ve stejném tvaru a pořadí, jaké generoval modul Origamis.
+
+        Pokladna (kontext ``is_online_qr``):  ``SPD*1.0*ACC*AM*CC*PT:IP*MSG``
+        Faktura / platba:                     ``SPD*1.0*ACC*AM*CC*X-VS``
+        Bez ``RN`` a bez mezer; ``PT:IP`` před ``MSG``, protože některé bankovní
+        aplikace berou vše za ``MSG:`` jako zprávu a příznak okamžité platby by přehlédly.
+        """
         if qr_method == QR_METHOD:
             vals = ["SPD*1.0", f"ACC:{self.sanitized_acc_number}"]
             if amount:
-                vals.append("AM:" + float_repr(currency.round(amount), currency.decimal_places))
+                vals.append("AM:" + spd_amount(amount))
             vals.append(f"CC:{currency.name}")
-            recipient = spd_text(self.acc_holder_name or self.partner_id.name, 35)
-            if recipient:
-                vals.append(f"RN:{recipient}")
-            variable_symbol = re.sub(r"\D", "", structured_communication or "")[:10]
-            if variable_symbol:
-                vals.append(f"X-VS:{variable_symbol}")
-            message = spd_text(free_communication, 60)
-            if message:
-                vals.append(f"MSG:{message}")
             if self.env.context.get("is_online_qr"):
-                # Pokladna: zákazník platí na místě, požádat o okamžitou platbu.
+                # Pokladna: zákazník platí na místě, okamžitá platba a číslo objednávky ve zprávě.
                 vals.append("PT:IP")
+                message = spd_text(free_communication, 60)
+                if message:
+                    vals.append(f"MSG:{message}")
+            else:
+                variable_symbol = re.sub(r"\D", "", structured_communication or "")[:10]
+                if variable_symbol:
+                    vals.append(f"X-VS:{variable_symbol}")
             return vals
         return super()._get_qr_vals(qr_method, amount, currency, debtor_partner, free_communication, structured_communication)
 
