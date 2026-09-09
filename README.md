@@ -17,6 +17,36 @@ Obsah QR kódu: `SPD*1.0*ACC:<IBAN>*AM:<částka>*CC:<měna>*RN:<příjemce>*X-V
 Variabilní symbol se bere z číslic platební reference faktury. V pokladně se
 přidává příznak okamžité platby `PT:IP`.
 
+## Kde se nastavuje číslo účtu pro QR
+
+Modul žádné vlastní nastavení nemá. Číslo účtu v QR kódu je vždy **IBAN z pole „Číslo účtu"
+bankovního účtu firmy** (`res.partner.bank`, pole `acc_number`); tuzemský tvar
+(`Číslo účtu (CZ)`, `Kód banky (CZ)`) se z IBAN doplní sám a slouží jen k zobrazení a tisku.
+Který účet Odoo použije, určuje standardní nastavení Odoo:
+
+**Bankovní účet firmy**
+Kontakty → firma (Anežka Čmelíková) → záložka Fakturace / Účetnictví → Bankovní účty.
+Do „Číslo účtu" patří český IBAN (např. `CZ38 2010 0000 0024 0183 5999`); banku (Fio) je dobré
+vyplnit kvůli názvu. Bez českého IBAN metoda QR Platba není k dispozici.
+
+**Bankovní deník** (Účetnictví/Fakturace → Konfigurace → Deníky → deník „Banka")
+Pole „Číslo bankovního účtu" ukazuje na účet výše. Tento deník je zdrojem účtu pro pokladnu
+a pro faktury, které mají nastavený způsob platby vedoucí na tento deník.
+
+**Pokladna** (Pokladna → Konfigurace → Platební metody → metoda „QR")
+Integrace = „Bankovní aplikace (QR kód)", Deník = bankovní deník „Banka", Formát QR kódu = „QR Platba (CZ)".
+QR na účtence se generuje na účet z tohoto deníku. Jiný účet = jiný deník nebo jiný účet v deníku.
+
+**Faktura**
+Pole „Bankovní účet příjemce" (`partner_bank_id`) v hlavičce faktury. Odoo ho předvyplní účtem
+z deníku preferovaného způsobu platby (faktury nebo zákazníka), jinak prvním aktivním bankovním účtem
+firmy (přednost má účet ve stejné měně). Na konkrétní faktuře jde účet přepsat ručně.
+Formát QR („QR Code Format" v záložce Další informace) se vybere automaticky: pro faktury v EUR SEPA,
+pro CZK QR Platba (CZ). QR se tiskne, jen když je zapnuté Fakturace → Nastavení → Platby zákazníků → „QR kódy".
+
+Aktuální stav na ranči: deník „Banka" → účet `CZ38 2010 0000 0024 0183 5999` = `2401835999/2010` (Fio),
+používá ho pokladna i faktury.
+
 ## Nahrazení modulu Origamis Base CZ
 
 Modul je navržený jako náhrada za `origamis_base_cz` + `origamis_cz_qr_code_pos`
