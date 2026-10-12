@@ -27,7 +27,6 @@ se automaticky odvozují z českého IBAN a tisknou na fakturu vedle IBAN.
         "views/res_partner_bank_views.xml",
         "views/report_invoice.xml",
     ],
-    "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
     "auto_install": False,

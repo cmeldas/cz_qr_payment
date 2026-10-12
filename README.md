@@ -65,7 +65,8 @@ Co se změnilo v Odoo 20 a v modulu:
   `acc_type` → `account_type`, `acc_holder_name` → `holder_name`. Modul i pohledy používají nové názvy.
 - `base_iban` je sloučený do jádra (typ účtu `iban` a kontrola IBAN jsou v `account`
   a `odoo.tools.bank_account_number`), závislost je jen `account`.
-- Instalační hook jen doplní tuzemský tvar z IBAN (`hooks.fill_cz_account_numbers`).
+- Bez instalačního hooku: `cz_account_number` a `cz_bank_code` jsou počítaná uložená pole z IBAN
+  (Odoo je spočítá při instalaci i při změně čísla účtu, ruční hodnota zůstane u jiného než českého IBAN).
 - `l10n_cz` má v Odoo 20 vlastní metodu „CZK QR“ (`czk_qr`, sekvence 50, jiný obsah: `RN`, `DT`,
   `X-VS` z čísla faktury, `PT:IP` i na faktuře). `qr_czk` má sekvenci 25, takže se při automatickém
   výběru na faktuře použije dřív; v pokladně zůstává uložená `qr_czk`. Na výběru v nastavení se

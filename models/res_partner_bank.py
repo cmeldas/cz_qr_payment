@@ -56,15 +56,24 @@ def spd_amount(amount):
 class ResPartnerBank(models.Model):
     _inherit = "res.partner.bank"
 
+    # Počítaná z IBAN a uložená: Odoo je spočítá samo při instalaci modulu i při změně
+    # čísla účtu, takže není potřeba instalační hook. U jiného než českého IBAN zůstává
+    # ruční hodnota.
     cz_account_number = fields.Char(
         string="Account Number (CZ)",
         size=17,
+        compute="_compute_cz_from_iban",
+        store=True,
+        readonly=False,
         help="Domestic Czech account number without the bank code, e.g. 19-2000145399. "
         "Filled automatically from a Czech IBAN.",
     )
     cz_bank_code = fields.Char(
         string="Bank Code (CZ)",
         size=4,
+        compute="_compute_cz_from_iban",
+        store=True,
+        readonly=False,
         help="Four-digit Czech bank code, e.g. 2010. Filled automatically from a Czech IBAN.",
     )
     cz_account_display = fields.Char(
@@ -87,33 +96,12 @@ class ResPartnerBank(models.Model):
         self.ensure_one()
         return cz_parts_from_iban(self.sanitized_account_number or self.account_number)
 
-    @api.model
-    def _cz_fill_vals_from_iban(self, vals):
-        parts = cz_parts_from_iban(vals.get("account_number"))
-        if not parts:
-            return
-        bank_code, account_number = parts
-        if not vals.get("cz_bank_code"):
-            vals["cz_bank_code"] = bank_code
-        if not vals.get("cz_account_number"):
-            vals["cz_account_number"] = account_number
-
-    @api.onchange("account_number")
-    def _onchange_account_number_cz(self):
-        parts = cz_parts_from_iban(self.account_number)
-        if parts:
-            self.cz_bank_code, self.cz_account_number = parts
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            self._cz_fill_vals_from_iban(vals)
-        return super().create(vals_list)
-
-    def write(self, vals):
-        if "account_number" in vals:
-            self._cz_fill_vals_from_iban(vals)
-        return super().write(vals)
+    @api.depends("account_number")
+    def _compute_cz_from_iban(self):
+        for bank in self:
+            parts = cz_parts_from_iban(bank.account_number)
+            if parts:
+                bank.cz_bank_code, bank.cz_account_number = parts
 
     # ------------------------------------------------------------------
     # Metoda QR kódu ``qr_czk``

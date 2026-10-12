@@ -8,8 +8,8 @@ V Odoo 20 je banka text na účtu (``bank_name``, ``bank_bic``) a pole účtu js
 nevznikne QR Platba (``ACC:``) a bez ``bank_name`` chybí na účtu název banky (Fio).
 
 Staré sloupce a tabulku ``res_bank`` rámec OpenUpgrade nemaže, takže jdou přečíst. Nakonec se
-z IBAN doplní tuzemský tvar (``cz_account_number``, ``cz_bank_code``), kde chybí. Skript je
-idempotentní a nic vyplněného nepřepisuje.
+u účtů s prázdným tuzemským tvarem (``cz_account_number``, ``cz_bank_code``) naplánuje přepočet
+z IBAN. Skript je idempotentní a nic vyplněného nepřepisuje.
 """
 import logging
 
@@ -83,8 +83,15 @@ def migrate(cr, version):
     _fill_renamed_columns(cr)
     _fill_bank_from_res_bank(cr)
 
-    from odoo.addons.cz_qr_payment.hooks import fill_cz_account_numbers
-
     env = api.Environment(cr, SUPERUSER_ID, {})
-    env["res.partner.bank"].invalidate_model()
-    fill_cz_account_numbers(env)
+    bank_model = env["res.partner.bank"]
+    bank_model.invalidate_model()
+    empty = bank_model.with_context(active_test=False).search(
+        ["|", ("cz_account_number", "=", False), ("cz_bank_code", "=", False)]
+    )
+    if empty:
+        fields_to_compute = [bank_model._fields["cz_account_number"], bank_model._fields["cz_bank_code"]]
+        for field in fields_to_compute:
+            env.add_to_compute(field, empty)
+        empty.flush_recordset()
+        _logger.info("cz_qr_payment: tuzemský tvar přepočítán z IBAN u %s účtů", len(empty))

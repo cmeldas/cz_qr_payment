@@ -110,18 +110,20 @@ class TestCzQrPayment(TransactionCase):
             "SPD*1.0*ACC:CZ6508000000192000145399*AM:123.5*CC:CZK*PT:IP*MSG:Order26A-1-000042A12",
         )
 
-    def test_fill_cz_account_numbers(self):
-        """Funkce hooku a migrace doplní chybějící tuzemský tvar, vyplněný nepřepíše."""
-        from odoo.addons.cz_qr_payment.hooks import fill_cz_account_numbers
-
+    def test_cz_fields_computed_without_hook(self):
+        """Tuzemský tvar je počítané uložené pole: přepočet z IBAN funguje i bez hooku."""
         self.bank_account.write({"cz_account_number": False, "cz_bank_code": False})
-        kept = self.env["res.partner.bank"].create({
-            "account_number": "CZ38 2010 0000 0024 0183 5999",
-            "partner_id": self.partner.id,
-        })
-        kept.cz_bank_code = "9999"
-        # nesoulad s IBAN jen zaloguje (varování zachytí test, aby nebylo v logu běhu)
-        with self.assertLogs("odoo.addons.cz_qr_payment.hooks", level="WARNING"):
-            fill_cz_account_numbers(self.env)
+        self.env.add_to_compute(self.bank_account._fields["cz_account_number"], self.bank_account)
+        self.env.add_to_compute(self.bank_account._fields["cz_bank_code"], self.bank_account)
+        self.bank_account.flush_recordset()
         self.assertEqual(self.bank_account.cz_account_display, "19-2000145399/0800")
-        self.assertEqual(kept.cz_bank_code, "9999")
+
+    def test_foreign_iban_keeps_manual_cz_fields(self):
+        """U jiného než českého IBAN zůstane ručně zadaný tuzemský tvar."""
+        account = self.env["res.partner.bank"].create({
+            "account_number": "DE89 3704 0044 0532 0130 00",
+            "partner_id": self.partner.id,
+            "cz_account_number": "123456",
+            "cz_bank_code": "0100",
+        })
+        self.assertEqual(account.cz_account_display, "123456/0100")
