@@ -45,9 +45,5 @@ def fill_cz_account_numbers(env):
 
 
 def post_init_hook(env):
-    """Po instalaci doplní tuzemský tvar u existujících bankovních účtů.
-
-    Převzetí kódu banky z modulu Origamis Base CZ (``res.bank.cz_bank_code``) bylo jen
-    ve verzi pro Odoo 19: Odoo 20 model ``res.bank`` nemá a Origamis pro něj neexistuje.
-    """
+    """Po instalaci doplní tuzemský tvar u existujících bankovních účtů."""
     fill_cz_account_numbers(env)

@@ -13,8 +13,7 @@ Odoo modul, který přidává české QR kódy pro platbu převodem ve formátu
   odvozené z českého IBAN (např. `CZ65 0800 0000 1920 0014 5399` →
   `19-2000145399/0800`). Tuzemský tvar se tiskne na fakturu vedle IBAN.
 
-Obsah QR kódu je záměrně **stejný jako v původním modulu Origamis** (pořadí, bez `RN`,
-bez mezer, částka jako `123.5`):
+Obsah QR kódu má záměrně **pevný tvar** (pořadí, bez `RN`, bez mezer, částka jako `123.5`):
 
 - pokladna: `SPD*1.0*ACC:<IBAN>*AM:<částka>*CC:<měna>*PT:IP*MSG:<Order pos_reference tracking>`
   (`PT:IP` = okamžitá platba, ve zprávě číslo objednávky a pořadové číslo lístku, bez mezer),
@@ -54,25 +53,6 @@ pro CZK QR Platba (CZ). QR se tiskne, jen když je zapnuté Fakturace → Nastav
 Aktuální stav na ranči: deník „Banka" → účet `CZ38 2010 0000 0024 0183 5999` = `2401835999/2010` (Fio),
 používá ho pokladna i faktury.
 
-## Nahrazení modulu Origamis Base CZ (jen Odoo 19)
-
-Modul je navržený jako náhrada za `origamis_base_cz` + `origamis_cz_qr_code_pos`
-v místech, kde jde jen o QR platbu. Klíč metody `qr_czk` je záměrně stejný,
-takže hodnoty uložené na fakturách a platebních metodách pokladny zůstávají platné.
-
-Postup výměny:
-
-1. Nainstalovat `cz_qr_payment` **při stále nainstalovaném Origamis**.
-   Instalační hook překopíruje kód banky, doplní chybějící údaje z IBAN
-   a odpojí záznamy bank od Origamis, aby přežily jeho odinstalaci.
-   Průběh je v logu pod prefixem `cz_qr_payment:`.
-2. U modulů závislých na `origamis_cz_qr_code_pos` změnit závislost na `cz_qr_payment`
-   a aktualizovat je.
-3. Odinstalovat `origamis_cz_qr_code_pos` a potom `origamis_base_cz`.
-
-Na produkci je výměna hotová (Origamis odinstalovaný). Verze pro Odoo 20 převzetí z Origamis
-už nemá: Odoo 20 nemá model `res.bank` a Origamis pro 20 neexistuje.
-
 ## Odoo 20
 
 Port z větve `19.0`, verze `20.0.1.1.0`. Obsah QR kódu (řetězec SPD) je **beze změny**,
@@ -85,8 +65,7 @@ Co se změnilo v Odoo 20 a v modulu:
   `acc_type` → `account_type`, `acc_holder_name` → `holder_name`. Modul i pohledy používají nové názvy.
 - `base_iban` je sloučený do jádra (typ účtu `iban` a kontrola IBAN jsou v `account`
   a `odoo.tools.bank_account_number`), závislost je jen `account`.
-- Instalační hook jen doplní tuzemský tvar z IBAN (`hooks.fill_cz_account_numbers`), převzetí
-  z Origamis a odpojování bank odpadlo.
+- Instalační hook jen doplní tuzemský tvar z IBAN (`hooks.fill_cz_account_numbers`).
 - `l10n_cz` má v Odoo 20 vlastní metodu „CZK QR“ (`czk_qr`, sekvence 50, jiný obsah: `RN`, `DT`,
   `X-VS` z čísla faktury, `PT:IP` i na faktuře). `qr_czk` má sekvenci 25, takže se při automatickém
   výběru na faktuře použije dřív; v pokladně zůstává uložená `qr_czk`. Na výběru v nastavení se

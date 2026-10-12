@@ -9,8 +9,8 @@ import unicodedata
 from odoo import _, api, fields, models
 
 
-# Stejný klíč jako používal modul Origamis, aby hodnoty uložené
-# v account.move.qr_code_method a pos.payment.method.qr_code_method zůstaly platné.
+# Klíč metody je uložený v account.move.qr_code_method a pos.payment.method.qr_code_method,
+# proto se nesmí měnit.
 QR_METHOD = "qr_czk"
 
 # CZkk BBBB PPPP PPNN NNNN NNNN  (B = kód banky, P = předčíslí, N = číslo účtu)
@@ -36,7 +36,7 @@ def cz_parts_from_iban(iban):
 def spd_text(value, max_len):
     """Očistí text pro hodnotu SPD: bez diakritiky, bez hvězdiček, konců řádků a mezer.
 
-    Mezery se odstraňují úplně (stejně jako v původním modulu Origamis): některé
+    Mezery se odstraňují úplně: některé
     bankovní aplikace berou zbytek řetězce za `MSG:` jako zprávu, a mezery
     v hodnotách jim vadí.
     """
@@ -49,7 +49,7 @@ def spd_text(value, max_len):
 
 
 def spd_amount(amount):
-    """Částka jako v Origamis: ``str(round(amount, 2))``, tedy 123.5 nebo 1500.0."""
+    """Částka jako ``str(round(amount, 2))``, tedy 123.5 nebo 1500.0."""
     return str(round(amount, 2))
 
 
@@ -141,7 +141,7 @@ class ResPartnerBank(models.Model):
         return super()._get_error_messages_for_qr(qr_method, debtor_partner, currency)
 
     def _get_qr_vals(self, qr_method, amount, currency, debtor_partner, free_communication, structured_communication):
-        """Řetězec SPD ve stejném tvaru a pořadí, jaké generoval modul Origamis.
+        """Řetězec SPD v pevném tvaru a pořadí.
 
         Pokladna (kontext ``is_online_qr``):  ``SPD*1.0*ACC*AM*CC*PT:IP*MSG``
         Faktura / platba:                     ``SPD*1.0*ACC*AM*CC*X-VS``

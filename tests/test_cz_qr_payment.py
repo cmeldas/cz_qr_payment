@@ -34,7 +34,7 @@ class TestCzQrPayment(TransactionCase):
         self.assertIn("qr_czk", methods)
 
     def test_spd_values_invoice(self):
-        """Faktura: stejný tvar jako Origamis – ACC, AM, CC, X-VS; bez RN a MSG."""
+        """Faktura: ACC, AM, CC, X-VS; bez RN a MSG."""
         vals = self.bank_account._get_qr_vals(
             "qr_czk", 1500.0, self.czk, self.no_partner, "FA/2026/00005", "202600005",
         )
