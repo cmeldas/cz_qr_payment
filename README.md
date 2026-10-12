@@ -13,8 +13,7 @@ Odoo modul, který přidává české QR kódy pro platbu převodem ve formátu
   odvozené z českého IBAN (např. `CZ65 0800 0000 1920 0014 5399` →
   `19-2000145399/0800`). Tuzemský tvar se tiskne na fakturu vedle IBAN.
 
-Obsah QR kódu je záměrně **stejný jako v původním modulu Origamis** (pořadí, bez `RN`,
-bez mezer, částka jako `123.5`):
+Obsah QR kódu má záměrně **pevný tvar** (pořadí, bez `RN`, bez mezer, částka jako `123.5`):
 
 - pokladna: `SPD*1.0*ACC:<IBAN>*AM:<částka>*CC:<měna>*PT:IP*MSG:<Order pos_reference tracking>`
   (`PT:IP` = okamžitá platba, ve zprávě číslo objednávky a pořadové číslo lístku, bez mezer),
@@ -27,7 +26,8 @@ a příznak okamžité platby by jinak přehlédly.
 
 Modul žádné vlastní nastavení nemá. Číslo účtu v QR kódu je vždy **IBAN z pole „Číslo účtu"
 bankovního účtu firmy** (`res.partner.bank`, pole `acc_number`); tuzemský tvar
-(`Číslo účtu (CZ)`, `Kód banky (CZ)`) se z IBAN doplní sám a slouží jen k zobrazení a tisku.
+(`Číslo účtu (CZ)`, `Kód banky (CZ)`) se z IBAN dopočítá sám (počítané uložené pole, bez instalačního
+hooku) a slouží jen k zobrazení a tisku.
 Který účet Odoo použije, určuje standardní nastavení Odoo:
 
 **Bankovní účet firmy**
@@ -52,22 +52,6 @@ pro CZK QR Platba (CZ). QR se tiskne, jen když je zapnuté Fakturace → Nastav
 
 Aktuální stav na ranči: deník „Banka" → účet `CZ38 2010 0000 0024 0183 5999` = `2401835999/2010` (Fio),
 používá ho pokladna i faktury.
-
-## Nahrazení modulu Origamis Base CZ
-
-Modul je navržený jako náhrada za `origamis_base_cz` + `origamis_cz_qr_code_pos`
-v místech, kde jde jen o QR platbu. Klíč metody `qr_czk` je záměrně stejný,
-takže hodnoty uložené na fakturách a platebních metodách pokladny zůstávají platné.
-
-Postup výměny:
-
-1. Nainstalovat `cz_qr_payment` **při stále nainstalovaném Origamis**.
-   Instalační hook překopíruje kód banky, doplní chybějící údaje z IBAN
-   a odpojí záznamy bank od Origamis, aby přežily jeho odinstalaci.
-   Průběh je v logu pod prefixem `cz_qr_payment:`.
-2. U modulů závislých na `origamis_cz_qr_code_pos` změnit závislost na `cz_qr_payment`
-   a aktualizovat je.
-3. Odinstalovat `origamis_cz_qr_code_pos` a potom `origamis_base_cz`.
 
 ## Testy
 
