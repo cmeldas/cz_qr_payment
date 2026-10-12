@@ -16,7 +16,7 @@ používá všude, kde Odoo QR kód pro platbu nabízí:
 Na bankovním účtu doplňuje tuzemský tvar čísla účtu a kód banky, které
 se automaticky odvozují z českého IBAN a tisknou na fakturu vedle IBAN.
 """,
-    "version": "20.0.1.1.0",
+    "version": "20.0.1.2.0",
     "category": "Accounting/Localizations",
     "author": "Matouš Čmelík",
     "website": "https://github.com/cmeldas/cz_qr_payment",

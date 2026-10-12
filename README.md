@@ -55,7 +55,7 @@ používá ho pokladna i faktury.
 
 ## Odoo 20
 
-Port z větve `19.0`, verze `20.0.1.1.0`. Obsah QR kódu (řetězec SPD) je **beze změny**,
+Port z větve `19.0`, verze `20.0.1.2.0`. Obsah QR kódu (řetězec SPD) je **beze změny**,
 kontrolují to testy (`test_spd_values_*`, `test_qr_value_pos`).
 
 Co se změnilo v Odoo 20 a v modulu:
