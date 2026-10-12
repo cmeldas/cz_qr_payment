@@ -80,7 +80,7 @@ Co se změnilo v Odoo 20 a v modulu:
 
 ### Migrace dat 19 → 20
 
-`migrations/20.0.1.1.0/post-migrate.py` (běží při `-u` z `19.0.1.1.0`, idempotentní, nic vyplněného
+`migrations/20.0.1.2.0/post-migrate.py` (běží při `-u` z `19.0.x`, idempotentní, nic vyplněného
 nepřepisuje):
 
 1. Doplní `account_number`, `sanitized_account_number`, `holder_name` ze starých sloupců
