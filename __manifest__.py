@@ -15,16 +15,14 @@ používá všude, kde Odoo QR kód pro platbu nabízí:
 
 Na bankovním účtu doplňuje tuzemský tvar čísla účtu a kód banky, které
 se automaticky odvozují z českého IBAN a tisknou na fakturu vedle IBAN.
-
-Při instalaci převezme čísla účtů z modulu Origamis Base CZ, pokud je
-nainstalovaný, a odpojí od něj záznamy bank, aby přežily jeho odinstalaci.
 """,
-    "version": "19.0.1.1.0",
+    "version": "20.0.1.1.0",
     "category": "Accounting/Localizations",
     "author": "Matouš Čmelík",
     "website": "https://github.com/cmeldas/cz_qr_payment",
     "license": "LGPL-3",
-    "depends": ["account", "base_iban"],
+    # base_iban je v Odoo 20 součástí base/account (typ účtu IBAN dodává account)
+    "depends": ["account"],
     "data": [
         "views/res_partner_bank_views.xml",
         "views/report_invoice.xml",

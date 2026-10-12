@@ -26,14 +26,15 @@ a příznak okamžité platby by jinak přehlédly.
 ## Kde se nastavuje číslo účtu pro QR
 
 Modul žádné vlastní nastavení nemá. Číslo účtu v QR kódu je vždy **IBAN z pole „Číslo účtu"
-bankovního účtu firmy** (`res.partner.bank`, pole `acc_number`); tuzemský tvar
+bankovního účtu firmy** (`res.partner.bank`, pole `account_number`); tuzemský tvar
 (`Číslo účtu (CZ)`, `Kód banky (CZ)`) se z IBAN doplní sám a slouží jen k zobrazení a tisku.
 Který účet Odoo použije, určuje standardní nastavení Odoo:
 
 **Bankovní účet firmy**
 Kontakty → firma (Anežka Čmelíková) → záložka Fakturace / Účetnictví → Bankovní účty.
-Do „Číslo účtu" patří český IBAN (např. `CZ38 2010 0000 0024 0183 5999`); banku (Fio) je dobré
-vyplnit kvůli názvu. Bez českého IBAN metoda QR Platba není k dispozici.
+Do „Číslo účtu" patří český IBAN (např. `CZ38 2010 0000 0024 0183 5999`); název banky (Fio)
+je dobré vyplnit kvůli zobrazení (v Odoo 20 textové pole název banky v záložce s údaji o bance,
+číselník bank už není). Bez českého IBAN metoda QR Platba není k dispozici.
 
 **Bankovní deník** (Účetnictví/Fakturace → Konfigurace → Deníky → deník „Banka")
 Pole „Číslo bankovního účtu" ukazuje na účet výše. Tento deník je zdrojem účtu pro pokladnu
@@ -53,7 +54,7 @@ pro CZK QR Platba (CZ). QR se tiskne, jen když je zapnuté Fakturace → Nastav
 Aktuální stav na ranči: deník „Banka" → účet `CZ38 2010 0000 0024 0183 5999` = `2401835999/2010` (Fio),
 používá ho pokladna i faktury.
 
-## Nahrazení modulu Origamis Base CZ
+## Nahrazení modulu Origamis Base CZ (jen Odoo 19)
 
 Modul je navržený jako náhrada za `origamis_base_cz` + `origamis_cz_qr_code_pos`
 v místech, kde jde jen o QR platbu. Klíč metody `qr_czk` je záměrně stejný,
@@ -69,11 +70,58 @@ Postup výměny:
    a aktualizovat je.
 3. Odinstalovat `origamis_cz_qr_code_pos` a potom `origamis_base_cz`.
 
+Na produkci je výměna hotová (Origamis odinstalovaný). Verze pro Odoo 20 převzetí z Origamis
+už nemá: Odoo 20 nemá model `res.bank` a Origamis pro 20 neexistuje.
+
+## Odoo 20
+
+Port z větve `19.0`, verze `20.0.1.1.0`. Obsah QR kódu (řetězec SPD) je **beze změny**,
+kontrolují to testy (`test_spd_values_*`, `test_qr_value_pos`).
+
+Co se změnilo v Odoo 20 a v modulu:
+
+- `res.bank` je zrušený, banka je text na účtu (`bank_name`, `bank_bic`); pole účtu jsou
+  přejmenovaná: `acc_number` → `account_number`, `sanitized_acc_number` → `sanitized_account_number`,
+  `acc_type` → `account_type`, `acc_holder_name` → `holder_name`. Modul i pohledy používají nové názvy.
+- `base_iban` je sloučený do jádra (typ účtu `iban` a kontrola IBAN jsou v `account`
+  a `odoo.tools.bank_account_number`), závislost je jen `account`.
+- Instalační hook jen doplní tuzemský tvar z IBAN (`hooks.fill_cz_account_numbers`), převzetí
+  z Origamis a odpojování bank odpadlo.
+- `l10n_cz` má v Odoo 20 vlastní metodu „CZK QR“ (`czk_qr`, sekvence 50, jiný obsah: `RN`, `DT`,
+  `X-VS` z čísla faktury, `PT:IP` i na faktuře). `qr_czk` má sekvenci 25, takže se při automatickém
+  výběru na faktuře použije dřív; v pokladně zůstává uložená `qr_czk`. Na výběru v nastavení se
+  objeví obě, správná je „QR Platba (CZ)“.
+- Pokladna Odoo 20 si od serveru bere surovou hodnotu QR (`get_qr_code_value` →
+  `build_qr_code_value`) a obrázek kreslí sama; řetězec je tentýž jako dřív.
+- Faktura s metodou `qr_czk` bez bankovního účtu příjemce (např. když ho Odoo přepočtem vyprázdní)
+  dřív při tisku spadla na `ensure_one`, teď ukáže srozumitelnou chybu „QR Platba requires a Czech IBAN…“.
+- Ověřeno i na faktuře v Odoo 20 (s `l10n_cz`): PDF má vedle IBAN tuzemský tvar `(2401835999/2010)`,
+  QR obsahuje `SPD*1.0*ACC:CZ3820100000002401835999*AM:1500.0*CC:CZK*X-VS:202600001`.
+
+### Migrace dat 19 → 20
+
+`migrations/20.0.1.1.0/post-migrate.py` (běží při `-u` z `19.0.1.1.0`, idempotentní, nic vyplněného
+nepřepisuje):
+
+1. Doplní `account_number`, `sanitized_account_number`, `holder_name` ze starých sloupců
+   `acc_number`, `sanitized_acc_number`, `acc_holder_name`, pokud je migrace jádra nechala prázdné
+   (bez `sanitized_account_number` by QR neměl `ACC:`).
+2. Doplní `bank_name` a `bank_bic` ze zrušené tabulky `res_bank` přes starý sloupec `bank_id`
+   (na produkci Fio banka, a.s. / `FIOBCZPP` u obou účtů).
+3. Doplní z IBAN chybějící `cz_account_number` a `cz_bank_code` (na produkci jsou vyplněné).
+
+Vlastní sloupce modulu (`cz_account_number`, `cz_bank_code` na `res_partner_bank`) zůstávají beze
+změny. Hlavní převod polí a `res.bank` musí udělat migrace jádra (OpenUpgrade `base`); staré sloupce
+a tabulku `res_bank` nesmí smazat dřív, než doběhne tento skript. Klíč `qr_czk` na fakturách
+(`account_move.qr_code_method`) a na platební metodě pokladny platí dál.
+
 ## Testy
 
 ```
 odoo -d <db> -i cz_qr_payment --test-enable --test-tags /cz_qr_payment --stop-after-init
 ```
+
+V Docker stacku Odoo 20 (`odoo20/docker-compose.yml`) s vlastní databází a `--db-filter`.
 
 ## Licence
 

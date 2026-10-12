@@ -65,10 +65,6 @@ class ResPartnerBank(models.Model):
     cz_bank_code = fields.Char(
         string="Bank Code (CZ)",
         size=4,
-        # Origamis definuje stejnojmenné pole jako related na banku (neukládané).
-        # Po dobu společné instalace musí vyhrát tato uložená varianta, proto explicitně.
-        related=None,
-        store=True,
         help="Four-digit Czech bank code, e.g. 2010. Filled automatically from a Czech IBAN.",
     )
     cz_account_display = fields.Char(
@@ -89,11 +85,11 @@ class ResPartnerBank(models.Model):
     # ------------------------------------------------------------------
     def _cz_parts_from_iban(self):
         self.ensure_one()
-        return cz_parts_from_iban(self.sanitized_acc_number or self.acc_number)
+        return cz_parts_from_iban(self.sanitized_account_number or self.account_number)
 
     @api.model
     def _cz_fill_vals_from_iban(self, vals):
-        parts = cz_parts_from_iban(vals.get("acc_number"))
+        parts = cz_parts_from_iban(vals.get("account_number"))
         if not parts:
             return
         bank_code, account_number = parts
@@ -102,9 +98,9 @@ class ResPartnerBank(models.Model):
         if not vals.get("cz_account_number"):
             vals["cz_account_number"] = account_number
 
-    @api.onchange("acc_number")
-    def _onchange_acc_number_cz(self):
-        parts = cz_parts_from_iban(self.acc_number)
+    @api.onchange("account_number")
+    def _onchange_account_number_cz(self):
+        parts = cz_parts_from_iban(self.account_number)
         if parts:
             self.cz_bank_code, self.cz_account_number = parts
 
@@ -115,7 +111,7 @@ class ResPartnerBank(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
-        if "acc_number" in vals:
+        if "account_number" in vals:
             self._cz_fill_vals_from_iban(vals)
         return super().write(vals)
 
@@ -124,14 +120,18 @@ class ResPartnerBank(models.Model):
     # ------------------------------------------------------------------
     @api.model
     def _get_available_qr_methods(self):
-        # Po dobu společné instalace s Origamis nesmí být klíč v seznamu dvakrát.
-        methods = [m for m in super()._get_available_qr_methods() if m[0] != QR_METHOD]
+        # Sekvence 25: před metodou „CZK QR“ z l10n_cz (50), která má jiný obsah
+        # (RN, DT, X-VS z čísla faktury), a za SEPA QR (20), která se na CZK nehodí.
+        methods = super()._get_available_qr_methods()
         methods.append((QR_METHOD, _("QR Platba (CZ)"), 25))
         return methods
 
     def _cz_qr_eligible(self):
+        if not self:
+            # faktura bez bankovního účtu příjemce: QR Platba není možná, ale nesmí spadnout
+            return False
         self.ensure_one()
-        return self.acc_type == "iban" and (self.sanitized_acc_number or "").startswith("CZ")
+        return self.account_type == "iban" and (self.sanitized_account_number or "").startswith("CZ")
 
     def _get_error_messages_for_qr(self, qr_method, debtor_partner, currency):
         if qr_method == QR_METHOD:
@@ -149,7 +149,7 @@ class ResPartnerBank(models.Model):
         aplikace berou vše za ``MSG:`` jako zprávu a příznak okamžité platby by přehlédly.
         """
         if qr_method == QR_METHOD:
-            vals = ["SPD*1.0", f"ACC:{self.sanitized_acc_number}"]
+            vals = ["SPD*1.0", f"ACC:{self.sanitized_account_number}"]
             if amount:
                 vals.append("AM:" + spd_amount(amount))
             vals.append(f"CC:{currency.name}")
